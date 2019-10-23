@@ -23,7 +23,8 @@ namespace FlightTracker
                 ActiveFlightTracker.instance.launchTime.TryGetValue(v.Key, out d);
                 temp.SetValue("LaunchTime", d, true);
                 if (ActiveFlightTracker.instance.met.TryGetValue(v.Key, out d)) temp.SetValue("TimeLogged", d, true);
-                if (ActiveFlightTracker.instance.numberOfWorldFirsts.TryGetValue(v.Key, out int i)) temp.SetValue("World Firsts", i, true);
+                int i;
+                if (ActiveFlightTracker.instance.numberOfWorldFirsts.TryGetValue(v.Key, out i)) temp.SetValue("World Firsts", i, true);
                 node.AddNode(temp);
                 counter++;
             }

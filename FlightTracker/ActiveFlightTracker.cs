@@ -41,75 +41,39 @@ namespace FlightTracker
             return timeString;
         }
 
-        public void EarnYourStripesUpgradePath(ConfigNode cn)
-        {
-            if (cn == null) return;
-            ConfigNode[] loaded = cn.GetNodes("KERBAL");
-            if (loaded.Count() == 0) return;
-            for (int i = 0; i < loaded.Count(); i++)
-            {
-                ConfigNode temp = loaded.ElementAt(i);
-                string s = temp.GetValue("Name");
-                if (s == null) continue;
-                flights.TryGetValue(s, out int currentInt);
-                int.TryParse(temp.GetValue("Flights"), out int loadedInt);
-                if (currentInt < loadedInt)
-                {
-                    flights.Remove(s);
-                    flights.Add(s, loadedInt);
-                }
-                met.TryGetValue(s, out double currentDouble);
-                double.TryParse(temp.GetValue("TimeLogged"), out double loadedDouble);
-                if (currentDouble < loadedDouble)
-                {
-                    met.Remove(s);
-                    met.Add(s, loadedDouble);
-                }
-                launchTime.TryGetValue(s, out currentDouble);
-                double.TryParse(temp.GetValue("LaunchTime"), out loadedDouble);
-                if (currentDouble < loadedDouble)
-                {
-                    launchTime.Remove(s);
-                    launchTime.Add(s, loadedDouble);
-                }
-                bool.TryParse("WorldFirst", out bool b);
-                if (b)
-                {
-                    numberOfWorldFirsts.Remove(s);
-                    numberOfWorldFirsts.Add(s, 1);
-                }
-            }
-            Debug.Log("[FlightTracker]: Successfully upgraded StripesData");
-        }
-
         public int GetNumberOfFlights(string kerbalName)
         {
-            flights.TryGetValue(kerbalName, out int i);
+            int i;
+            flights.TryGetValue(kerbalName, out i);
             return i;
         }
 
         public double GetRecordedMissionTimeSeconds(string kerbalName)
         {
-            met.TryGetValue(kerbalName, out double d);
+            double d;
+            met.TryGetValue(kerbalName, out d);
             return d;
         }
 
         public double GetRecordedMissionTimeHours(string kerbalName)
         {
-            met.TryGetValue(kerbalName, out double d);
+            double d;
+            met.TryGetValue(kerbalName, out d);
             d = d / 60 / 60;
             return d;
         }
 
         public double GetLaunchTime(string kerbalName)
         {
-            launchTime.TryGetValue(kerbalName, out double d);
+            double d;
+            launchTime.TryGetValue(kerbalName, out d);
             return d;
         }
 
         public int GetNumberOfWorldFirsts(string kerbalName)
         {
-            numberOfWorldFirsts.TryGetValue(kerbalName, out int i);
+            int i;
+            numberOfWorldFirsts.TryGetValue(kerbalName, out i);
             return i;
         }
 
@@ -128,8 +92,10 @@ namespace FlightTracker
                 }
                 launchTime.Remove(p.name);
                 launchTime.Add(p.name, Planetarium.GetUniversalTime());
-                if(!flights.TryGetValue(p.name, out int flightCount))flights.Add(p.name, 0);
-                if(!met.TryGetValue(p.name, out double d))met.Add(p.name, 0);
+                int flightCount;
+                if(!flights.TryGetValue(p.name, out flightCount))flights.Add(p.name, 0);
+                double d;
+                if(!met.TryGetValue(p.name, out d))met.Add(p.name, 0);
                 Debug.Log("[FlightTracker]: "+p.name+" launched at "+Planetarium.GetUniversalTime());
             }
         }
@@ -139,7 +105,7 @@ namespace FlightTracker
             Debug.Log("[FlightTracker]: OnProgressComplete fired");
             if (FlightGlobals.ActiveVessel == null) return;
             List<ProtoCrewMember> crew = FlightGlobals.ActiveVessel.GetVesselCrew();
-            Debug.Log("[FlightTracker]: Found " + crew.Count() + " potential candiates for World Firsts");
+            Debug.Log("[FlightTracker]: Found " + crew.Count() + " potential candidates for World Firsts");
             if (crew.Count == 0) return;
             int recordedWorldFirsts = 0;
             for(int i = 0; i<crew.Count; i++)
@@ -182,12 +148,14 @@ namespace FlightTracker
                 double d = 0;
                 if (met.TryGetValue(p, out d)) met.Remove(p);
                 double missionTime = 0;
-                if (launchTime.TryGetValue(p, out double recordedLaunchTime)) missionTime = Planetarium.GetUniversalTime() - recordedLaunchTime;
+                double recordedLaunchTime;
+                if (launchTime.TryGetValue(p, out recordedLaunchTime)) missionTime = Planetarium.GetUniversalTime() - recordedLaunchTime;
                 else missionTime = v.missionTime;
                 d = d + missionTime;
                 flights.Add(p, recovered);
                 met.Add(p, d);
-                numberOfWorldFirsts.TryGetValue(crew.ElementAt(i).name, out int recordedWorldFirsts);
+                int recordedWorldFirsts;
+                numberOfWorldFirsts.TryGetValue(crew.ElementAt(i).name, out recordedWorldFirsts);
                 Debug.Log("[FlightTracker]: Processed Recovery of " + p);
                 Debug.Log("[FlightTracker]: " + p + " - Flights: " + recovered);
                 Debug.Log("[FlightTracker]: " + p + " - Time Logged: " + (int)d);
