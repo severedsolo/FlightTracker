@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System;
 using System.Linq;
+using JetBrains.Annotations;
 using UnityEngine;
 
 
@@ -10,7 +11,7 @@ namespace FlightTracker
     public class ActiveFlightTracker : MonoBehaviour
     {
         public static ActiveFlightTracker instance;
-        public static EventData<ProtoCrewMember> onFlightTrackerUpdated;
+        private static EventData<ProtoCrewMember> onFlightTrackerUpdated;
         internal Dictionary<string, int> flights = new Dictionary<string, int>();
         internal Dictionary<string, double> met = new Dictionary<string, double>();
         internal Dictionary<string, double> launchTime = new Dictionary<string, double>();
@@ -23,14 +24,7 @@ namespace FlightTracker
             onFlightTrackerUpdated = new EventData<ProtoCrewMember>("onFlightTrackerUpdated");
             Debug.Log("[FlightTracker]: Flight Tracker is Awake");
         }
-        private void Start()
-        {
-            GameEvents.onVesselRecovered.Add(onVesselRecovered);
-            GameEvents.OnProgressComplete.Add(OnProgressComplete);
-            GameEvents.OnVesselRollout.Add(OnVesselRollout);
-            Debug.Log("[FlightTracker]: Registered Event Handlers");
-        }
-
+        [PublicAPI]
         public string ConvertUtToString(double time)
         {
             time = time / 60 / 60;
@@ -41,20 +35,21 @@ namespace FlightTracker
             return timeString;
         }
 
+        [PublicAPI]
         public int GetNumberOfFlights(string kerbalName)
         {
             int i;
             flights.TryGetValue(kerbalName, out i);
             return i;
         }
-
+        [PublicAPI]
         public double GetRecordedMissionTimeSeconds(string kerbalName)
         {
             double d;
             met.TryGetValue(kerbalName, out d);
             return d;
         }
-
+        [PublicAPI]
         public double GetRecordedMissionTimeHours(string kerbalName)
         {
             double d;
@@ -62,22 +57,22 @@ namespace FlightTracker
             d = d / 60 / 60;
             return d;
         }
-
+        [PublicAPI]
         public double GetLaunchTime(string kerbalName)
         {
             double d;
             launchTime.TryGetValue(kerbalName, out d);
             return d;
         }
-
+        [PublicAPI]
         public int GetNumberOfWorldFirsts(string kerbalName)
         {
             int i;
             numberOfWorldFirsts.TryGetValue(kerbalName, out i);
             return i;
         }
-
-        private void OnVesselRollout(ShipConstruct data)
+        
+        internal void OnVesselRollout()
         {
             Debug.Log("[FlightTracker]: OnVesselRollout fired");
             if (FlightGlobals.ActiveVessel.GetCrewCount() == 0) return;
@@ -92,22 +87,20 @@ namespace FlightTracker
                 }
                 launchTime.Remove(p.name);
                 launchTime.Add(p.name, Planetarium.GetUniversalTime());
-                int flightCount;
-                if(!flights.TryGetValue(p.name, out flightCount))flights.Add(p.name, 0);
+                if(!flights.TryGetValue(p.name, out int flightCount))flights.Add(p.name, 0);
                 double d;
                 if(!met.TryGetValue(p.name, out d))met.Add(p.name, 0);
                 Debug.Log("[FlightTracker]: "+p.name+" launched at "+Planetarium.GetUniversalTime());
             }
         }
 
-        private void OnProgressComplete(ProgressNode data)
+        internal void RecordWorldFirst()
         {
             Debug.Log("[FlightTracker]: OnProgressComplete fired");
             if (FlightGlobals.ActiveVessel == null) return;
             List<ProtoCrewMember> crew = FlightGlobals.ActiveVessel.GetVesselCrew();
             Debug.Log("[FlightTracker]: Found " + crew.Count() + " potential candidates for World Firsts");
             if (crew.Count == 0) return;
-            int recordedWorldFirsts = 0;
             for(int i = 0; i<crew.Count; i++)
             {
                 if (!crew.ElementAt(i).flightLog.HasEntry(FlightLog.EntryType.Orbit))
@@ -115,17 +108,31 @@ namespace FlightTracker
                     Debug.Log("[FlightTracker]: " + crew.ElementAt(i).name + " has not reached orbit yet and won't be given credit for this world first");
                     continue;
                 }
-                numberOfWorldFirsts.TryGetValue(crew.ElementAt(i).name, out recordedWorldFirsts);
+                
+                numberOfWorldFirsts.TryGetValue(crew.ElementAt(i).name, out int recordedWorldFirsts);
                 numberOfWorldFirsts.Remove(crew.ElementAt(i).name);
                 recordedWorldFirsts++;
                 numberOfWorldFirsts.Add(crew.ElementAt(i).name, recordedWorldFirsts);
                 Debug.Log("[FlightTracker]: " + crew.ElementAt(i).name + " has achieved a World First");
             }
         }
+        
+        public Vessel MatchVesselToId(uint id)
+        {
+            for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
+            {
+                Vessel v = FlightGlobals.Vessels.ElementAt(i);
+                if (v.persistentId != id) continue;
+                return v;
+            }
 
-        private void onVesselRecovered(ProtoVessel v, bool data1)
+            return null;
+        }
+
+        internal void OnVesselRecovered(ProtoVessel v)
         {
             Debug.Log("[FlightTracker]: onVesselRecovered Fired");
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (v.missionTime == 0)
             {
                 Debug.Log("[FlightTracker]: " + v.vesselName + " hasn't gone anywhere. No credit will be awarded for this flight");
@@ -162,14 +169,6 @@ namespace FlightTracker
                 Debug.Log("[FlightTracker]: " + p + " - World Firsts Achieved: " + recordedWorldFirsts);
                 onFlightTrackerUpdated.Fire(crew.ElementAt(i));
             }
-        }
-
-        private void OnDestroy()
-        {
-            GameEvents.onVesselRecovered.Remove(onVesselRecovered);
-            GameEvents.OnProgressReached.Remove(OnProgressComplete);
-            GameEvents.OnVesselRollout.Remove(OnVesselRollout);
-            Debug.Log("[FlightTracker]: Unregistered Event Handlers");
         }
     }
 }

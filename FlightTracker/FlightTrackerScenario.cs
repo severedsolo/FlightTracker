@@ -12,7 +12,7 @@ namespace FlightTracker
         public override void OnSave(ConfigNode node)
         {
             int counter = 0;
-            if (ActiveFlightTracker.instance.flights.Count() == 0) return;
+            if (!ActiveFlightTracker.instance.flights.Any()) return;
             node.RemoveNodes("KERBAL");
             foreach (var v in ActiveFlightTracker.instance.flights)
             {
@@ -35,7 +35,7 @@ namespace FlightTracker
         {
             int counter = 0;
             ConfigNode[] loaded = node.GetNodes("KERBAL");
-            if (loaded.Count() == 0) return;
+            if (!loaded.Any()) return;
             ActiveFlightTracker.instance.flights.Clear();
             ActiveFlightTracker.instance.met.Clear();
             ActiveFlightTracker.instance.numberOfWorldFirsts.Clear();
