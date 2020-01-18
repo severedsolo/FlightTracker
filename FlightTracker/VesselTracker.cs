@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,7 +9,7 @@ namespace FlightTracker
     internal class VesselTracker : MonoBehaviour
     {
         internal static VesselTracker Instance;
-        internal readonly Dictionary<uint, double> ActualLaunchTime = new Dictionary<uint, double>();
+        internal readonly Dictionary<Guid, double> ActualLaunchTime = new Dictionary<Guid, double>();
 
         private void Awake()
         {
@@ -18,35 +19,41 @@ namespace FlightTracker
 
         internal void StartTrackingVessel()
         {
-            if (!ActualLaunchTime.TryGetValue(FlightGlobals.ActiveVessel.persistentId, out double d)) ActualLaunchTime.Add(FlightGlobals.ActiveVessel.persistentId, Planetarium.GetUniversalTime());
-            else Debug.Log("[FlightTracker]: VesselTracker found a duplicate ID! " + FlightGlobals.ActiveVessel.vesselName + " " + d);
             VerifyIDs();
+            if (!ActualLaunchTime.TryGetValue(FlightGlobals.ActiveVessel.id, out double d)) ActualLaunchTime.Add(FlightGlobals.ActiveVessel.id, Planetarium.GetUniversalTime());
+            else
+            {
+                ActualLaunchTime[FlightGlobals.ActiveVessel.id] = Planetarium.GetUniversalTime();
+                Debug.Log("[FlightTracker]: VesselTracker found a duplicate ID! " + FlightGlobals.ActiveVessel.vesselName + " " + FlightGlobals.ActiveVessel.id);
+            }
         }
         
         private void VerifyIDs()
         {
             Debug.Log("[FlightTracker]: Checking for vessels that no longer exist");
-            for (int i = ActualLaunchTime.Count; i >= 0; i--)
+            if (ActualLaunchTime.Count == 0) return;
+            Guid[] vesselIDs = ActualLaunchTime.Keys.ToArray();
+            if (vesselIDs.Length == 0) return;
+            foreach (Guid idToCheck in vesselIDs)
             {
-                uint id = ActualLaunchTime.ElementAt(i).Key;
-                if (VesselStillExists(id)) continue;
-                ActualLaunchTime.Remove(id);
-                Debug.Log("[FlightTracker]: Stopped Tracking "+id);
+                if (VesselStillExists(idToCheck)) continue;
+                ActualLaunchTime.Remove(idToCheck);
             }
         }
 
-        private bool VesselStillExists(uint id)
+        private bool VesselStillExists(Guid id)
         {
             if (MatchVesselToId(id) == null) return false;
             return true;
         }
 
-        internal Vessel MatchVesselToId(uint id)
+        internal Vessel MatchVesselToId(Guid id)
         {
+            if (FlightGlobals.Vessels.Count == 0) return null;
             for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
             {
                 Vessel v = FlightGlobals.Vessels.ElementAt(i);
-                if (v.persistentId != id) continue;
+                if (v.id != id) continue;
                 return v;
             }
 
@@ -56,10 +63,10 @@ namespace FlightTracker
         public void OnSave(ConfigNode cn)
         {
             ConfigNode trackerNode = new ConfigNode("VESSEL_TRACKER");
-            foreach (KeyValuePair<uint, double> kvp in ActualLaunchTime)
+            foreach (KeyValuePair<Guid, double> kvp in ActualLaunchTime)
             {
                 ConfigNode vesselNode = new ConfigNode("VESSEL");
-                vesselNode.SetValue("ID", kvp.Key, true);
+                vesselNode.SetValue("ID", kvp.Key.ToString(), true);
                 vesselNode.SetValue("actualLaunchTime", kvp.Value, true);
                 trackerNode.AddNode(vesselNode);
             }
@@ -74,7 +81,7 @@ namespace FlightTracker
             ConfigNode[] vesselNodes = trackerNode.GetNodes("VESSEL");
             foreach (ConfigNode vesselNode in vesselNodes)
             {
-                if (!uint.TryParse(vesselNode.GetValue("ID"), out uint id)) continue;
+                if (!Guid.TryParse(vesselNode.GetValue("ID"), out Guid id)) continue;
                 if(!double.TryParse(vesselNode.GetValue("actualLaunchTime"), out double launchTime)) continue;
                 ActualLaunchTime.Add(id, launchTime);
             }

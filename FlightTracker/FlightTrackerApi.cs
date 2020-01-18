@@ -21,7 +21,7 @@ namespace FlightTracker
         }
 
         [PublicAPI]
-        public double VesselRealMet(uint id)
+        public double VesselRealMet(Guid id)
         {
             if(VesselTracker.Instance.ActualLaunchTime.TryGetValue(id, out double d)) return d;
             return VesselTracker.Instance.MatchVesselToId(id).missionTime;
@@ -31,7 +31,7 @@ namespace FlightTracker
         [PublicAPI]
         public double VesselRealMet(Vessel v)
         {
-            if(VesselTracker.Instance.ActualLaunchTime.TryGetValue(v.persistentId, out double d)) return d;
+            if(VesselTracker.Instance.ActualLaunchTime.TryGetValue(v.id, out double d)) return d;
             return v.missionTime;
         }
         
