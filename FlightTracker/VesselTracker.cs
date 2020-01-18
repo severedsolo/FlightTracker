@@ -1,58 +1,83 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace FlightTracker
 {
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
-    public class VesselTracker : MonoBehaviour
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
+    internal class VesselTracker : MonoBehaviour
     {
         internal static VesselTracker Instance;
-        private readonly Dictionary<uint, double> actualLaunchTime = new Dictionary<uint, double>();
+        internal readonly Dictionary<uint, double> ActualLaunchTime = new Dictionary<uint, double>();
 
         private void Awake()
         {
             Instance = this;
+            DontDestroyOnLoad(this);
         }
 
         internal void StartTrackingVessel()
         {
-            if (!actualLaunchTime.TryGetValue(FlightGlobals.ActiveVessel.persistentId, out double d)) actualLaunchTime.Add(FlightGlobals.ActiveVessel.persistentId, Planetarium.GetUniversalTime());
-            else Debug.Log("[FlightTracker]: VesselTracker found a duplicate ID! " + FlightGlobals.ActiveVessel.vesselName + " " + FlightGlobals.ActiveVessel.persistentId);
+            if (!ActualLaunchTime.TryGetValue(FlightGlobals.ActiveVessel.persistentId, out double d)) ActualLaunchTime.Add(FlightGlobals.ActiveVessel.persistentId, Planetarium.GetUniversalTime());
+            else Debug.Log("[FlightTracker]: VesselTracker found a duplicate ID! " + FlightGlobals.ActiveVessel.vesselName + " " + d);
             VerifyIDs();
-            CorrectMETs();
         }
-
-        private void CorrectMETs()
-        {
-            for (int i = 0; i < actualLaunchTime.Count; i++)
-            {
-                KeyValuePair<uint, double> kvp = actualLaunchTime.ElementAt(i);
-                double actualMet = Planetarium.GetUniversalTime() - kvp.Value;
-                Vessel v = ActiveFlightTracker.instance.MatchVesselToId(kvp.Key);
-                if (v.missionTime == actualMet) continue;
-                v.missionTime = actualMet;
-                Debug.Log("Correcting Mission Time for " + v.vesselName + " id: " + v.persistentId + " to " + actualMet);
-            }
-        }
-
+        
         private void VerifyIDs()
         {
             Debug.Log("[FlightTracker]: Checking for vessels that no longer exist");
-            for (int i = actualLaunchTime.Count; i >= 0; i--)
+            for (int i = ActualLaunchTime.Count; i >= 0; i--)
             {
-                uint id = actualLaunchTime.ElementAt(i).Key;
+                uint id = ActualLaunchTime.ElementAt(i).Key;
                 if (VesselStillExists(id)) continue;
-                actualLaunchTime.Remove(id);
+                ActualLaunchTime.Remove(id);
                 Debug.Log("[FlightTracker]: Stopped Tracking "+id);
             }
         }
 
         private bool VesselStillExists(uint id)
         {
-            if (ActiveFlightTracker.instance.MatchVesselToId(id) == null) return false;
+            if (MatchVesselToId(id) == null) return false;
             return true;
+        }
+
+        internal Vessel MatchVesselToId(uint id)
+        {
+            for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
+            {
+                Vessel v = FlightGlobals.Vessels.ElementAt(i);
+                if (v.persistentId != id) continue;
+                return v;
+            }
+
+            return null;
+        }
+        
+        public void OnSave(ConfigNode cn)
+        {
+            ConfigNode trackerNode = new ConfigNode("VESSEL_TRACKER");
+            foreach (KeyValuePair<uint, double> kvp in ActualLaunchTime)
+            {
+                ConfigNode vesselNode = new ConfigNode("VESSEL");
+                vesselNode.SetValue("ID", kvp.Key, true);
+                vesselNode.SetValue("actualLaunchTime", kvp.Value, true);
+                trackerNode.AddNode(vesselNode);
+            }
+            cn.AddNode(trackerNode);
+        }
+
+        public void OnLoad(ConfigNode cn)
+        {
+            ActualLaunchTime.Clear();
+            ConfigNode trackerNode = cn.GetNode("VESSEL_TRACKER");
+            if (trackerNode == null) return;
+            ConfigNode[] vesselNodes = trackerNode.GetNodes("VESSEL");
+            foreach (ConfigNode vesselNode in vesselNodes)
+            {
+                if (!uint.TryParse(vesselNode.GetValue("ID"), out uint id)) continue;
+                if(!double.TryParse(vesselNode.GetValue("actualLaunchTime"), out double launchTime)) continue;
+                ActualLaunchTime.Add(id, launchTime);
+            }
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace FlightTracker
@@ -21,18 +20,18 @@ namespace FlightTracker
 
         private void OnVesselRollout(ShipConstruct ship)
         {
-            ActiveFlightTracker.instance.OnVesselRollout();
+            KerbalTracker.Instance.OnVesselRollout();
             VesselTracker.Instance.StartTrackingVessel();
         }
 
         private void OnProgressComplete(ProgressNode data)
         {
-            ActiveFlightTracker.instance.RecordWorldFirst();
+            KerbalTracker.Instance.RecordWorldFirst();
         }
 
         private void OnVesselRecovered(ProtoVessel recoveredVessel, bool data1)
         {
-            ActiveFlightTracker.instance.OnVesselRecovered(recoveredVessel);
+            KerbalTracker.Instance.ProcessKerbalRecovery(recoveredVessel);
         }
 
 

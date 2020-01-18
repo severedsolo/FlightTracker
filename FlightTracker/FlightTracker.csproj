@@ -51,7 +51,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ActiveFlightTracker.cs" />
+    <Compile Include="FlightTrackerApi.cs" />
+    <Compile Include="KerbalTracker.cs" />
     <Compile Include="EventListeners.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FlightTrackerScenario.cs" />

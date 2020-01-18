@@ -1,34 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace FlightTracker
 {
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
-    class FlightTrackerScenario : ScenarioModule
+    internal class FlightTrackerScenario : ScenarioModule
     {
         public override void OnSave(ConfigNode node)
         {
             int counter = 0;
-            if (!ActiveFlightTracker.instance.flights.Any()) return;
+            if (!KerbalTracker.Instance.Flights.Any()) return;
             node.RemoveNodes("KERBAL");
-            foreach (var v in ActiveFlightTracker.instance.flights)
+            foreach (KeyValuePair<string, int> v in KerbalTracker.Instance.Flights)
             {
                 ConfigNode temp = new ConfigNode("KERBAL");
                 temp.SetValue("Name", v.Key, true);
                 temp.SetValue("Flights", v.Value, true);
                 double d = 0;
-                ActiveFlightTracker.instance.launchTime.TryGetValue(v.Key, out d);
+                KerbalTracker.Instance.LaunchTime.TryGetValue(v.Key, out d);
                 temp.SetValue("LaunchTime", d, true);
-                if (ActiveFlightTracker.instance.met.TryGetValue(v.Key, out d)) temp.SetValue("TimeLogged", d, true);
-                int i;
-                if (ActiveFlightTracker.instance.numberOfWorldFirsts.TryGetValue(v.Key, out i)) temp.SetValue("World Firsts", i, true);
+                if (KerbalTracker.Instance.KerbalFlightTime.TryGetValue(v.Key, out d)) temp.SetValue("TimeLogged", d, true);
+                if (KerbalTracker.Instance.NumberOfWorldFirsts.TryGetValue(v.Key, out int i)) temp.SetValue("World Firsts", i, true);
                 node.AddNode(temp);
                 counter++;
             }
             Debug.Log("[FlightTracker]: Saved " + counter + " kerbals flight data");
+            VesselTracker.Instance.OnSave(node);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -36,24 +34,24 @@ namespace FlightTracker
             int counter = 0;
             ConfigNode[] loaded = node.GetNodes("KERBAL");
             if (!loaded.Any()) return;
-            ActiveFlightTracker.instance.flights.Clear();
-            ActiveFlightTracker.instance.met.Clear();
-            ActiveFlightTracker.instance.numberOfWorldFirsts.Clear();
-            ActiveFlightTracker.instance.launchTime.Clear();
-            for(int i = 0; i<loaded.Count();i++)
+            KerbalTracker.Instance.Flights.Clear();
+            KerbalTracker.Instance.KerbalFlightTime.Clear();
+            KerbalTracker.Instance.NumberOfWorldFirsts.Clear();
+            KerbalTracker.Instance.LaunchTime.Clear();
+            for(int i = 0; i<loaded.Length;i++)
             {
                 ConfigNode temp = loaded.ElementAt(i);
                 string s = temp.GetValue("Name");
                 if (s == null) continue;
-                int t;
-                if (Int32.TryParse(temp.GetValue("Flights"), out t)) ActiveFlightTracker.instance.flights.Add(s, t);
-                double d;
-                if (Double.TryParse(temp.GetValue("TimeLogged"), out d)) ActiveFlightTracker.instance.met.Add(s, d);
-                Double.TryParse(temp.GetValue("LaunchTime"), out d);
-                if (d != 0) ActiveFlightTracker.instance.launchTime.Add(s, d);
-                if (Int32.TryParse(temp.GetValue("World Firsts"), out t)) ActiveFlightTracker.instance.numberOfWorldFirsts.Add(s, t);
+                if (int.TryParse(temp.GetValue("Flights"), out int t)) KerbalTracker.Instance.Flights.Add(s, t);
+                if (double.TryParse(temp.GetValue("TimeLogged"), out double d)) KerbalTracker.Instance.KerbalFlightTime.Add(s, d);
+                double.TryParse(temp.GetValue("LaunchTime"), out d);
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (d != 0) KerbalTracker.Instance.LaunchTime.Add(s, d);
+                if (int.TryParse(temp.GetValue("World Firsts"), out t)) KerbalTracker.Instance.NumberOfWorldFirsts.Add(s, t);
                 counter++;
             }
+            VesselTracker.Instance.OnLoad(node);
             Debug.Log("[FlightTracker]: Loaded " + counter + " kerbals flight data");
         }
     }
