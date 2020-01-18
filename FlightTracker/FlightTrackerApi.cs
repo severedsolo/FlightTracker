@@ -5,9 +5,11 @@ using UnityEngine;
 
 namespace FlightTracker
 {
-    [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
+    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     public class FlightTrackerApi : MonoBehaviour
     {
+        public static EventData<ProtoCrewMember> OnFlightTrackerUpdated;
+        
         [PublicAPI]
         public static FlightTrackerApi Instance;
         
@@ -15,6 +17,7 @@ namespace FlightTracker
         {
             DontDestroyOnLoad(this);
             Instance = this;
+            OnFlightTrackerUpdated = new EventData<ProtoCrewMember>("onFlightTrackerUpdated");    
         }
 
         [PublicAPI]

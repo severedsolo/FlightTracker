@@ -9,7 +9,6 @@ namespace FlightTracker
     internal class KerbalTracker : MonoBehaviour
     {
         internal static KerbalTracker Instance;
-        private static EventData<ProtoCrewMember> onFlightTrackerUpdated;
         internal readonly Dictionary<string, int> Flights = new Dictionary<string, int>();
         internal readonly Dictionary<string, double> KerbalFlightTime = new Dictionary<string, double>();
         internal readonly Dictionary<string, double> LaunchTime = new Dictionary<string, double>();
@@ -19,7 +18,6 @@ namespace FlightTracker
         {
             Instance = this;
             DontDestroyOnLoad(this);
-            onFlightTrackerUpdated = new EventData<ProtoCrewMember>("onFlightTrackerUpdated");
             Debug.Log("[FlightTracker]: Flight Tracker is Awake");
         }
 
@@ -103,7 +101,7 @@ namespace FlightTracker
                 Debug.Log("[FlightTracker]: " + p + " - Flights: " + recovered);
                 Debug.Log("[FlightTracker]: " + p + " - Time Logged: " + (int)d);
                 Debug.Log("[FlightTracker]: " + p + " - World Firsts Achieved: " + recordedWorldFirsts);
-                onFlightTrackerUpdated.Fire(crew.ElementAt(i));
+                FlightTrackerApi.OnFlightTrackerUpdated.Fire(crew.ElementAt(i));
             }
         }
     }
