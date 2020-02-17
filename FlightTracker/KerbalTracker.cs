@@ -85,11 +85,9 @@ namespace FlightTracker
                     continue;
                 }
                 string p = crew.ElementAt(i).name;
-                int recovered = 0;
-                if (Flights.TryGetValue(p, out recovered)) Flights.Remove(p);
+                if (Flights.TryGetValue(p, out int recovered)) Flights.Remove(p);
                 recovered += 1;
-                double d = 0;
-                if (KerbalFlightTime.TryGetValue(p, out d)) KerbalFlightTime.Remove(p);
+                if (KerbalFlightTime.TryGetValue(p, out double d)) KerbalFlightTime.Remove(p);
                 double missionTime = 0;
                 if (LaunchTime.TryGetValue(p, out double recordedLaunchTime)) missionTime = Planetarium.GetUniversalTime() - recordedLaunchTime;
                 else missionTime = v.missionTime;
